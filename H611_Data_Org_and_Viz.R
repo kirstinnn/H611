@@ -10,7 +10,6 @@ require(ggthemes); require(ggpubr); require(ggpattern) # DATA VIZ
 ################################################################################
 
 # FIGURE 2 - BOXPLOTS OF TCN
-# CREATE DATAFRAME USING INFO FROM EXTRACTION TABLE
 
 data_exp <- data.frame(
   study = c("Study 1", "Study 2a", "Study 2b", "Study 3a", "Study 3b", "Study 4", "Study 5"),
@@ -31,9 +30,6 @@ data_exp$study<- factor(data_exp$study, levels  = c("Study 1",
                                        "B. Lin (2013)", 
                                        "Xiao (2021)", "Zhan (2017)"))
 
-
-
-# PLOT
 
 fig2 <- ggplot(data_exp, aes(x = "", y = median)) +
   geom_boxplot(
@@ -61,7 +57,7 @@ fig2
 ################################################################################
 
 # FIGURE 3 - BOXPLOTS OF MORTALITY DATA 
-# CREATE DATAFRAME USING INFO FROM EXTRACTION TABLE
+
 data_outcome <- data.frame(
   study = c("Study 1", "Study 2a", "Study 2b", "Study 3a", "Study 3b", "Study 4", "Study 5"),
   mean = c(4.44, 16, 138, 30.19, 17.64, 31, 2014.5),
@@ -108,7 +104,7 @@ fig3
 
 ################################################################################
 
-# FIGURE 4 SUMMARY RISK OF BIAS 
+# FIGURE 4 - TILE PLOT OF SUMMARY RISK OF BIAS 
 
 robdf <- data.frame(
   Study = c("Study 1", "Study 2a", "Study2b", "Study 3a", "Study 3b", "Study 4", "Study 5"),
@@ -284,7 +280,7 @@ fig6
 
 ################################################################################
 
-# INDIVIDUAL STUDIES - MORTALITY TYPES - AT LAG 0 ONLY 
+# INDIVIDUAL STUDIES - FOREST PLOT OF MORTALITY TYPES - AT LAG 0 ONLY 
 # FIG 7
 
 # STUDY 5 EXCLUDED BECAUSE IT ONLY HAS CUMULATED ESTS
@@ -400,9 +396,9 @@ fig7
 ###############################################################################
 
 # INDIVIDUAL STUDIES - EFFECT MOD INDIVIDUAL -- AGE -- LAG 0
-# FOR NON-ACCIDENTAL MORTALITY
+# FOR NON-ACCIDENTAL MORTALITY - TILE PLOT
 # DIRECTION & SIGNIFICANCE ONLY, NO EFFECT ESTS 
-
+# FIG 8
 
 effestemsage <- data.frame(
   Study = c("Study1_Young_1", "Study1_Old_1",
@@ -491,7 +487,7 @@ fig8
 
 # INDIVIDUAL STUDIES - EFFECT MOD INDIVIDUAL --  SEX -- AT LAG 0
 # IF LAG 0 EST NOT PROVIDED; STUDY NOT INCLUDED 
-# FOR NON-ACCIDENTAL MORTALITY
+# FOR NON-ACCIDENTAL MORTALITY - TILE PLOT
 # DIRECTION & SIGNIFICANCE ONLY, NO EFFECT ESTS 
 
 # FIG 9 
@@ -570,7 +566,8 @@ fig9 <-  ggplot(effestemsex, aes(x = direction, y = interaction(effectmodder, st
     scale_pattern_manual(values = c("No" = "stripe", "Yes" = "pch"),
                          guide = guide_legend(title = "Statistically significant", override.aes = list(fill = "lightgray"))) +
     geom_text(aes(label = num_studies), vjust = 0.35, color = "black", size = 3.5, fontface = "bold") +
-    theme_bw() +
+  geom_vline(xintercept = 1.5, linetype = "solid", color = "black", size = 1) +  
+  theme_bw() +
     theme(
       axis.text = element_text(colour = "black", size = 12),
       axis.ticks.y = element_blank(),
@@ -583,7 +580,8 @@ fig9 <-  ggplot(effestemsex, aes(x = direction, y = interaction(effectmodder, st
   
 fig9
 
-  
+################################################################################
+
 # SEASONAL ANALYSES - DIRECTIONAL ONLY 
 # AT LAG 0 # DIFFERENTISH DEFS OF SEASON 
 
@@ -615,6 +613,7 @@ effestemseason <- effestemseason%>%
 #################################################################################
 
 # SUMMARY OF FINDINGS 1 - EXPOSURE ASSESSMENT - TCN METRIC 
+# TABLE 3
 
 effestexpmetric <- effest %>% group_by(tcnmet, measurementmet) %>% 
   summarise(medianRRs = median(effest), medianlowCI = median(lowerlim), medianhighCI = median(upperlim),
@@ -628,14 +627,17 @@ effestexpmetric
 
 # GET SAMPLE SIZES 
 
-effestexp_ss <- effest %>% group_by(tcnmet) %>% 
-  summarise(sumss = sum(samplesize))
-effestexp_ss
+effestexpmetric_ss <- effest %>%
+  distinct(Study, tcnmet, .keep_all = TRUE) %>%  
+  group_by(tcnmet) %>%
+  summarise(sumss = sum(samplesize), total_count = n())
+
+effestexpmetric_ss
 
 ################################################################################
 
 # SUMMARY OF FINDINGS 2 STATS METHODS 
-
+# TABLE 4
 # SUBFINDING 1 - STAT MODELS - GENERAL METHOD
 
 effeststats <- effest %>% group_by(statmod, measurementmet) %>% 
@@ -650,7 +652,7 @@ view(effeststats)
 
 # GET SAMPLE SIZES 
 
-effesteststats <- effest %>%
+effesteststats_ss <- effest %>%
   distinct(Study, statmod, .keep_all = TRUE) %>%  
   group_by(statmod) %>%
   summarise(sumss = sum(samplesize), total_count = n())
@@ -870,6 +872,7 @@ effesttemp_ss %>% filter(tempsome== "yes")
 ################################################################################
 
 # SUMMARY FINDINGS 3 - MORTALITY OUTCOMES AT LAG 0 
+# TABLE 5
 
 effestallmort <- effestbydiffmortcause %>% group_by(measurementmet, outcome) %>% 
   summarise(medianRRs = median(effest), medianlowCI = median(lowerlim), medianhighCI = median(upperlim),
@@ -893,8 +896,10 @@ effestlall_mort_ss <- effestbydiffmortcause %>%
 
 ################################################################################
 
-# SUMMARY OF FINDINGS - RRS BY SEX (NB NO SAMPLE SIZES)
-# 3 STUDIES INCLUDED
+# SUMMARY OF FINDINGS - EFFECT MOD (NB NO SAMPLE SIZES)
+# TABLE 6
+
+# SEX
 
 effestemsex %>% filter(effectmodder == "Male") %>% 
   group_by(measurementmet, direction) %>% 
@@ -923,8 +928,11 @@ effestemsage %>% filter(effectmodder == "75+") %>%
   group_by(measurementmet, direction) %>% 
   summarise(count = sum(num_studies))
 
-# SEASON
 
+################################################################################
+
+# SEASON
+# TABLE 7
 
 effestemseason %>% filter(effectmodder == "Warm") %>% 
   group_by(measurementmet, direction) %>% 
